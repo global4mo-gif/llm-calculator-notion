@@ -264,7 +264,7 @@
     </div>
 
     <p class="hint">
-      Для известных сервисов ссылка подставляется автоматически, но теперь у любой строки её можно вручную исправить или сбросить обратно на автоопределение.
+      Любую строку можно переименовать, удалить или перенастроить ссылку вручную. Кнопка сброса внизу возвращает исходный базовый список.
     </p>
 
     <hr />
@@ -402,13 +402,6 @@
 
       function getRowLink(row) {
         return row.manualUrl || getOfficialUrl(row.name);
-      }
-
-      function createStaticName(name) {
-        const label = document.createElement("div");
-        label.className = "ai-name is-static";
-        label.textContent = name;
-        return label;
       }
 
       function createLinkElement(row) {
@@ -555,31 +548,24 @@
           const info = document.createElement("div");
           info.className = "ai-info";
 
-          if (options.editableName) {
-            const nameInput = document.createElement("input");
-            nameInput.className = "ai-name";
-            nameInput.type = "text";
-            nameInput.placeholder = "Название ИИ";
-            nameInput.value = row.name || "";
+          const nameInput = document.createElement("input");
+          nameInput.className = "ai-name";
+          nameInput.type = "text";
+          nameInput.placeholder = "Название ИИ";
+          nameInput.value = row.name || "";
 
-            const linkArea = document.createElement("div");
+          const linkArea = document.createElement("div");
 
-            nameInput.addEventListener("input", function () {
-              row.name = nameInput.value;
-              saveState();
-              linkArea.innerHTML = "";
-              linkArea.appendChild(buildLinkBlock(row, { ...options, sectionName }));
-            });
-
-            info.appendChild(nameInput);
-            info.appendChild(linkArea);
+          nameInput.addEventListener("input", function () {
+            row.name = nameInput.value;
+            saveState();
+            linkArea.innerHTML = "";
             linkArea.appendChild(buildLinkBlock(row, { ...options, sectionName }));
-          } else {
-            info.appendChild(createStaticName(row.name));
-            const linkArea = document.createElement("div");
-            linkArea.appendChild(buildLinkBlock(row, { ...options, sectionName }));
-            info.appendChild(linkArea);
-          }
+          });
+
+          info.appendChild(nameInput);
+          info.appendChild(linkArea);
+          linkArea.appendChild(buildLinkBlock(row, { ...options, sectionName }));
 
           item.appendChild(info);
           item.appendChild(createPointsInput(row, function () {
@@ -603,8 +589,8 @@
 
       function rerender() {
         saveState();
-        renderSection("main", "main-rows", { editableName: false, removable: false });
-        renderSection("extra", "extra-rows", { editableName: false, removable: false });
+        renderSection("main", "main-rows", { editableName: true, removable: true });
+        renderSection("extra", "extra-rows", { editableName: true, removable: true });
         renderSection("custom", "custom-rows", { editableName: true, removable: true });
         updateTotals();
       }
