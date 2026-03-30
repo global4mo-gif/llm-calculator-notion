@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM калькулятор баллов</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: transparent;
+      color: #111827;
+    }
+
+    .calculator {
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 14px;
+      background: #fafafa;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 96px;
+      gap: 8px 12px;
+      align-items: center;
+    }
+
+    label {
+      line-height: 1.3;
+    }
+
+    input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font: inherit;
+      background: #ffffff;
+      color: inherit;
+    }
+
+    input:focus {
+      outline: 2px solid #93c5fd;
+      outline-offset: 1px;
+      border-color: #60a5fa;
+    }
+
+    hr {
+      margin: 14px 0;
+      border: 0;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .totals {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .row span:last-child,
+    .row strong {
+      white-space: nowrap;
+    }
+
+    .row.total {
+      margin-top: 4px;
+      font-size: 15px;
+    }
+
+    button {
+      margin-top: 12px;
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover {
+      background: #f3f4f6;
+      border-color: #94a3b8;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      .calculator {
+        padding: 16px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr 88px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator" id="llm-calculator">
+    <h3>LLM калькулятор баллов</h3>
+
+    <div class="grid">
+      <label for="manus">Manus</label>
+      <input id="manus" type="number" min="0" step="1" value="40" class="llm-input" />
+
+      <label for="openai">OpenAI</label>
+      <input id="openai" type="number" min="0" step="1" value="22" class="llm-input" />
+
+      <label for="perplexity">Perplexity</label>
+      <input id="perplexity" type="number" min="0" step="1" value="20" class="llm-input" />
+
+      <label for="claude">Claude</label>
+      <input id="claude" type="number" min="0" step="1" value="100" class="llm-input" />
+
+      <label for="grok">Grok</label>
+      <input id="grok" type="number" min="0" step="1" value="30" class="llm-input" />
+
+      <label for="subemotion">Subemotion</label>
+      <input id="subemotion" type="number" min="0" step="1" value="20" class="llm-input" />
+
+      <label for="higgsfield">Higgsfield</label>
+      <input id="higgsfield" type="number" min="0" step="1" value="35" class="llm-input" />
+    </div>
+
+    <hr />
+
+    <div class="totals">
+      <div class="row">
+        <span>Основные:</span>
+        <strong id="total-main">210</strong>
+      </div>
+
+      <div class="row">
+        <span>Дополнительно:</span>
+        <strong id="total-extra">55</strong>
+      </div>
+
+      <div class="row total">
+        <span>Всего:</span>
+        <strong id="total-all">265</strong>
+      </div>
+    </div>
+
+    <button id="reset-llm-calculator" type="button">Сбросить к исходным значениям</button>
+  </div>
+
+  <script>
+    (function () {
+      const defaultValues = {
+        manus: 40,
+        openai: 22,
+        perplexity: 20,
+        claude: 100,
+        grok: 30,
+        subemotion: 20,
+        higgsfield: 35
+      };
+
+      const idsMain = ["manus", "openai", "perplexity", "claude", "grok"];
+      const idsExtra = ["subemotion", "higgsfield"];
+
+      function safeNumber(value) {
+        const n = Number(value);
+        return Number.isNaN(n) ? 0 : n;
+      }
+
+      function sum(ids) {
+        return ids.reduce((total, id) => {
+          const el = document.getElementById(id);
+          return total + (el ? safeNumber(el.value) : 0);
+        }, 0);
+      }
+
+      function updateTotals() {
+        const totalMain = sum(idsMain);
+        const totalExtra = sum(idsExtra);
+
+        document.getElementById("total-main").textContent = totalMain;
+        document.getElementById("total-extra").textContent = totalExtra;
+        document.getElementById("total-all").textContent = totalMain + totalExtra;
+      }
+
+      function resetCalculator() {
+        Object.entries(defaultValues).forEach(([id, value]) => {
+          const el = document.getElementById(id);
+          if (el) el.value = value;
+        });
+        updateTotals();
+      }
+
+      document.querySelectorAll(".llm-input").forEach((input) => {
+        input.addEventListener("input", updateTotals);
+      });
+
+      document
+        .getElementById("reset-llm-calculator")
+        .addEventListener("click", resetCalculator);
+
+      updateTotals();
+    })();
+  </script>
+</body>
+</html>
