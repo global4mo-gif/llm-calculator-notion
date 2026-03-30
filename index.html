@@ -103,6 +103,13 @@
       text-decoration: underline;
     }
 
+    .ai-link-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .ai-link.muted {
       color: #94a3b8;
       text-decoration: none;
@@ -172,6 +179,12 @@
     .link-edit button {
       flex: 0 0 auto;
       padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .link-toggle-btn,
+    .link-reset-btn {
+      padding: 6px 8px;
       font-size: 12px;
     }
 
@@ -251,8 +264,7 @@
     </div>
 
     <p class="hint">
-      Для известных сервисов ссылка на официальный сайт подставляется автоматически.
-      Если сервис не распознан, можно вставить ссылку вручную.
+      Для известных сервисов ссылка подставляется автоматически, но теперь у любой строки её можно вручную исправить или сбросить обратно на автоопределение.
     </p>
 
     <hr />
@@ -435,11 +447,32 @@
 
         saveButton.addEventListener("click", function () {
           row.manualUrl = input.value.trim();
+          row.isEditingLink = false;
+          onChange();
+        });
+
+        const cancelButton = document.createElement("button");
+        cancelButton.type = "button";
+        cancelButton.textContent = "Отмена";
+        cancelButton.addEventListener("click", function () {
+          row.isEditingLink = false;
+          onChange();
+        });
+
+        const resetButton = document.createElement("button");
+        resetButton.type = "button";
+        resetButton.className = "link-reset-btn";
+        resetButton.textContent = "Авто";
+        resetButton.addEventListener("click", function () {
+          row.manualUrl = "";
+          row.isEditingLink = false;
           onChange();
         });
 
         wrapper.appendChild(input);
         wrapper.appendChild(saveButton);
+        wrapper.appendChild(cancelButton);
+        wrapper.appendChild(resetButton);
 
         return wrapper;
       }
@@ -463,9 +496,36 @@
       function buildLinkBlock(row, options) {
         const fragment = document.createDocumentFragment();
 
-        fragment.appendChild(createLinkElement(row));
+        const linkRow = document.createElement("div");
+        linkRow.className = "ai-link-row";
+        linkRow.appendChild(createLinkElement(row));
 
-        if (options.editableName && !getRowLink(row)) {
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "link-toggle-btn";
+        editButton.textContent = row.manualUrl ? "Править ссылку" : "Задать ссылку";
+        editButton.addEventListener("click", function () {
+          row.isEditingLink = !row.isEditingLink;
+          rerender();
+        });
+        linkRow.appendChild(editButton);
+
+        if (row.manualUrl) {
+          const resetButton = document.createElement("button");
+          resetButton.type = "button";
+          resetButton.className = "link-reset-btn";
+          resetButton.textContent = "Сбросить";
+          resetButton.addEventListener("click", function () {
+            row.manualUrl = "";
+            row.isEditingLink = false;
+            rerender();
+          });
+          linkRow.appendChild(resetButton);
+        }
+
+        fragment.appendChild(linkRow);
+
+        if (row.isEditingLink || (options.editableName && !getRowLink(row))) {
           fragment.appendChild(createManualLinkEditor(row, rerender));
         }
 
