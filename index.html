@@ -23,7 +23,7 @@
 
     .calculator {
       width: 100%;
-      max-width: 460px;
+      max-width: 520px;
       padding: 20px;
       border: 1px solid #d1d5db;
       border-radius: 12px;
@@ -59,7 +59,7 @@
 
     .ai-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 96px;
+      grid-template-columns: minmax(0, 1fr) 128px;
       gap: 10px 12px;
       align-items: start;
     }
@@ -119,6 +119,7 @@
 
     .points-input,
     .ai-name,
+    .renewal-input,
     .manual-link-input {
       width: 100%;
       padding: 6px 8px;
@@ -133,8 +134,28 @@
       align-self: start;
     }
 
+    .metric-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-self: start;
+    }
+
+    .field-label {
+      font-size: 11px;
+      line-height: 1.2;
+      color: #64748b;
+    }
+
+    .renewal-status {
+      font-size: 11px;
+      line-height: 1.2;
+      color: #64748b;
+    }
+
     .points-input:focus,
     .ai-name:focus,
+    .renewal-input:focus,
     .manual-link-input:focus {
       outline: 2px solid #93c5fd;
       outline-offset: 1px;
@@ -239,7 +260,7 @@
       }
 
       .ai-row {
-        grid-template-columns: minmax(0, 1fr) 84px;
+        grid-template-columns: minmax(0, 1fr) 118px;
       }
 
       .link-edit,
@@ -268,7 +289,7 @@
     </div>
 
     <p class="hint">
-      Любую строку можно переименовать, удалить или перенастроить ссылку вручную. Кнопка сброса внизу возвращает исходный базовый список.
+      Любую строку можно переименовать, удалить, перенастроить ссылку и указать дату обновления подписки. Кнопка сброса внизу возвращает исходный базовый список.
     </p>
 
     <hr />
@@ -338,15 +359,15 @@
 
       const defaultRows = {
         main: [
-          { id: "manus", name: "Manus", points: 40 },
-          { id: "openai", name: "OpenAI", points: 22 },
-          { id: "perplexity", name: "Perplexity", points: 20 },
-          { id: "claude", name: "Claude", points: 100 },
-          { id: "grok", name: "Grok", points: 30 }
+          { id: "manus", name: "Manus", points: 40, renewalDate: "" },
+          { id: "openai", name: "OpenAI", points: 22, renewalDate: "" },
+          { id: "perplexity", name: "Perplexity", points: 20, renewalDate: "" },
+          { id: "claude", name: "Claude", points: 100, renewalDate: "" },
+          { id: "grok", name: "Grok", points: 30, renewalDate: "" }
         ],
         extra: [
-          { id: "subemotion", name: "Subemotion", points: 20 },
-          { id: "higgsfield", name: "Higgsfield", points: 35 }
+          { id: "subemotion", name: "Subemotion", points: 20, renewalDate: "" },
+          { id: "higgsfield", name: "Higgsfield", points: 35, renewalDate: "" }
         ],
         custom: []
       };
@@ -360,6 +381,44 @@
       function safeNumber(value) {
         const n = Number(value);
         return Number.isNaN(n) ? 0 : n;
+      }
+
+      function startOfLocalDay(date) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      }
+
+      function parseLocalDate(value) {
+        if (!value) {
+          return null;
+        }
+
+        const parts = value.split("-").map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) {
+          return null;
+        }
+
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      }
+
+      function getRenewalStatus(value) {
+        const renewalDate = parseLocalDate(value);
+        if (!renewalDate) {
+          return "дата не задана";
+        }
+
+        const today = startOfLocalDay(new Date());
+        const oneDay = 24 * 60 * 60 * 1000;
+        const diffDays = Math.round((renewalDate.getTime() - today.getTime()) / oneDay);
+
+        if (diffDays === 0) {
+          return "обновляется сегодня";
+        }
+
+        if (diffDays > 0) {
+          return "через " + diffDays + " дн.";
+        }
+
+        return "было " + Math.abs(diffDays) + " дн. назад";
       }
 
       function cloneDefaultRows() {
@@ -490,6 +549,39 @@
         return input;
       }
 
+      function createMetricPanel(row, onChange) {
+        const panel = document.createElement("div");
+        panel.className = "metric-panel";
+
+        const pointsInput = createPointsInput(row, onChange);
+
+        const renewalLabel = document.createElement("label");
+        renewalLabel.className = "field-label";
+        renewalLabel.textContent = "Обновление";
+
+        const renewalInput = document.createElement("input");
+        renewalInput.className = "renewal-input";
+        renewalInput.type = "date";
+        renewalInput.value = row.renewalDate || "";
+
+        const renewalStatus = document.createElement("div");
+        renewalStatus.className = "renewal-status";
+        renewalStatus.textContent = getRenewalStatus(row.renewalDate);
+
+        renewalInput.addEventListener("input", function () {
+          row.renewalDate = renewalInput.value;
+          renewalStatus.textContent = getRenewalStatus(row.renewalDate);
+          onChange();
+        });
+
+        panel.appendChild(pointsInput);
+        panel.appendChild(renewalLabel);
+        panel.appendChild(renewalInput);
+        panel.appendChild(renewalStatus);
+
+        return panel;
+      }
+
       function buildLinkBlock(row, options) {
         const fragment = document.createDocumentFragment();
 
@@ -572,7 +664,7 @@
           linkArea.appendChild(buildLinkBlock(row, { ...options, sectionName }));
 
           item.appendChild(info);
-          item.appendChild(createPointsInput(row, function () {
+          item.appendChild(createMetricPanel(row, function () {
             saveState();
             updateTotals();
           }));
@@ -605,7 +697,8 @@
           id: "custom-" + Date.now() + "-" + nextIndex,
           name: "",
           points: 0,
-          manualUrl: ""
+          manualUrl: "",
+          renewalDate: ""
         });
         rerender();
       }
